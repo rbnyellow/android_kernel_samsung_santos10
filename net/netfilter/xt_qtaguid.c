@@ -55,26 +55,12 @@ module_param_named(stats_perms, proc_stats_perms, uint, S_IRUGO | S_IWUSR);
 
 static struct proc_dir_entry *xt_qtaguid_ctrl_file;
 
-#ifdef CONFIG_ANDROID_PARANOID_NETWORK
 /* Everybody can write. But proc_ctrl_write_limited is true by default which
  * limits what can be controlled. See the can_*() functions.
  */
 static unsigned int proc_ctrl_perms = S_IRUGO | S_IWUGO;
-#else
-static unsigned int proc_ctrl_perms = S_IRUGO | S_IWUSR;
-#endif
 module_param_named(ctrl_perms, proc_ctrl_perms, uint, S_IRUGO | S_IWUSR);
 
-#ifdef CONFIG_ANDROID_PARANOID_NETWORK
-#include <linux/android_aid.h>
-static gid_t proc_stats_readall_limited = AID_NET_BW_STATS;
-static gid_t proc_ctrl_write_limited = AID_NET_BW_ACCT;
-
-module_param_named(stats_readall_limited, proc_stats_readall_limited, uint,
-		   S_IRUGO | S_IWUSR);
-module_param_named(ctrl_write_limited, proc_ctrl_write_limited, uint,
-		   S_IRUGO | S_IWUSR);
-#else
 /* Limited by default, so the gid of the ctrl and stats proc entries
  * will limit what can be done. See the can_*() functions.
  */
@@ -85,7 +71,6 @@ module_param_named(stats_readall_limited, proc_stats_readall_limited, bool,
 		   S_IRUGO | S_IWUSR);
 module_param_named(ctrl_write_limited, proc_ctrl_write_limited, bool,
 		   S_IRUGO | S_IWUSR);
-#endif
 
 /*
  * Limit the number of active tags (via socket tags) for a given UID.
@@ -256,8 +241,7 @@ static bool can_manipulate_uids(void)
 {
 	/* root pwnd */
 	return in_egroup_p(xt_qtaguid_ctrl_file->gid)
-		|| unlikely(!current_fsuid())
-		|| unlikely(!proc_ctrl_write_limited)
+		|| unlikely(!current_fsuid()) || unlikely(!proc_ctrl_write_limited)
 		|| unlikely(current_fsuid() == xt_qtaguid_ctrl_file->uid);
 }
 
@@ -1653,6 +1637,7 @@ static int __init iface_stat_init(struct proc_dir_entry *parent_procdir)
 	}
 	iface_stat_fmt_procfile->read_proc = iface_stat_fmt_proc_read;
 	iface_stat_fmt_procfile->data = (void *)2; /* fmt2 */
+
 
 	err = register_netdevice_notifier(&iface_netdev_notifier_blk);
 	if (err) {
