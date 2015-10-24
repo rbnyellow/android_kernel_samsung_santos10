@@ -414,6 +414,26 @@ static struct touch_key santos10_touch_keys[] = {
 	},
 };
 
+/* touch key led */
+enum {
+	GPIO_TSK_EN = 0,
+};
+
+static struct gpio keyled_gpios[] = {
+	[GPIO_TSK_EN] = {
+		.flags = GPIOF_OUT_INIT_LOW,
+		.label = "TOUCHKEY_LED_EN",
+	}
+};
+
+static void santos10_keyled_set_power(bool on)
+{
+	if (on)
+		gpio_set_value(keyled_gpios[GPIO_TSK_EN].gpio, 1);
+	else
+		gpio_set_value(keyled_gpios[GPIO_TSK_EN].gpio, 0);
+}
+
 static struct sec_ts_platform_data santos10_mxt1188s_ts_pdata = {
 	.fw_name		= "atmel/p5200.fw",
 	.ext_fw_name		= "/mnt/sdcard/p5200.fw",
@@ -427,6 +447,7 @@ static struct sec_ts_platform_data santos10_mxt1188s_ts_pdata = {
 	.set_power		= santos10_atmel_set_power,
 	.platform_init		= santos10_platform_init,
 	.platform_deinit	= santos10_platform_deinit,
+	.keyled_set_power	= santos10_keyled_set_power,
 };
 
 void *santos10_mxt1188s_ts_platform_data(void *info)
@@ -453,26 +474,6 @@ void *santos10_mxt1188s_ts_platform_data(void *info)
 					sec_debug_get_level() ? true : false;
 
 	return &santos10_mxt1188s_ts_pdata;
-}
-
-/* touch key led */
-enum {
-	GPIO_TSK_EN = 0,
-};
-
-static struct gpio keyled_gpios[] = {
-	[GPIO_TSK_EN] = {
-		.flags = GPIOF_OUT_INIT_LOW,
-		.label = "TOUCHKEY_LED_EN",
-	}
-};
-
-static void santos10_keyled_set_power(bool on)
-{
-	if (on)
-		gpio_set_value(keyled_gpios[GPIO_TSK_EN].gpio, 1);
-	else
-		gpio_set_value(keyled_gpios[GPIO_TSK_EN].gpio, 0);
 }
 
 static ssize_t keyled_control(struct device *dev, struct device_attribute *attr,
