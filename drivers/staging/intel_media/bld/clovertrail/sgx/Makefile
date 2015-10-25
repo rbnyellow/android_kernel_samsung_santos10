@@ -98,4 +98,4 @@ $(DRIVER_NAME)-objs +=  \
 	$(SGXDIR)/mmu.o \
 	$(SGXDIR)/pb.o
 
-obj-m += $(DRIVER_NAME).o
+obj-y += $(DRIVER_NAME).o
