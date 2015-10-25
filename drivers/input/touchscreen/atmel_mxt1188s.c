@@ -385,6 +385,36 @@ do {									\
 		dev_info(&(_data)->client->dev, __VA_ARGS__);		\
 } while (0)								\
 
+struct sec_ts_platform_data *bl_pdata = NULL;
+
+static int bl_timeout = 1600;
+static struct timer_list bl_timer;
+static void bl_off(struct work_struct *bl_off_work);
+static DECLARE_WORK(bl_off_work, bl_off);
+
+static void set_keyled_power(bool on) {
+	if (bl_pdata == NULL)
+		return;
+
+	bl_pdata->keyled_set_power(on);
+}
+
+static void bl_off(struct work_struct *bl_off_work)
+{
+	set_keyled_power(false);
+}
+
+void bl_timer_callback(unsigned long data)
+{
+	schedule_work(&bl_off_work);
+}
+
+static void bl_set_timeout() {
+	if (bl_timeout > 0) {
+		mod_timer(&bl_timer, jiffies + msecs_to_jiffies(bl_timeout));
+	}
+}
+
 static int mxt_wait_for_chg(struct mxt_data *data, u16 time)
 {
 	int timeout_counter = 0;
@@ -1156,6 +1186,9 @@ static void mxt_treat_T15_object(struct mxt_data *data,
 							state ? 1 : 0);
 		}
 	}
+
+	set_keyled_power(true);
+	bl_set_timeout();
 
 	return;
 }
@@ -2315,6 +2348,8 @@ static void mxt_early_suspend(struct early_suspend *h)
 	struct mxt_data *data = container_of(h, struct mxt_data, early_suspend);
 	mutex_lock(&data->input_dev->mutex);
 
+	set_keyled_power(false);
+
 	mxt_stop(data);
 
 	mutex_unlock(&data->input_dev->mutex);
@@ -2327,6 +2362,9 @@ static void mxt_late_resume(struct early_suspend *h)
 	mutex_lock(&data->input_dev->mutex);
 
 	mxt_start(data);
+
+	set_keyled_power(true);
+	bl_set_timeout();
 
 	mutex_unlock(&data->input_dev->mutex);
 	dev_info(&data->client->dev, "late_resume done\n");
@@ -3903,6 +3941,9 @@ static int __devinit mxt_probe(struct i2c_client *client,
 	complete_all(&data->init_done);
 	dev_info(&client->dev, "Ateml MXT1188S probe done.\n");
 
+	bl_pdata = data->pdata;
+	setup_timer(&bl_timer, bl_timer_callback, 0);
+
 	return 0;
 
 #if defined(CONFIG_TOUCHSCREEN_ATMEL_DEBUG)
@@ -3952,6 +3993,8 @@ static int __devexit mxt_remove(struct i2c_client *client)
 	if (data->pdata->platform_deinit)
 		data->pdata->platform_deinit();
 	kfree(data);
+
+	del_timer(&bl_timer);
 
 	return 0;
 }
