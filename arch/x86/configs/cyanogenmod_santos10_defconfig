@@ -492,7 +492,7 @@ CONFIG_PHYSICAL_ALIGN=0x100000
 CONFIG_HOTPLUG_CPU=y
 # CONFIG_COMPAT_VDSO is not set
 CONFIG_CMDLINE_BOOL=y
-CONFIG_CMDLINE="androidboot.hardware=santos10"
+CONFIG_CMDLINE="androidboot.hardware=santos10 androidboot.selinux=permissive"
 # CONFIG_CMDLINE_OVERRIDE is not set
 CONFIG_ARCH_ENABLE_MEMORY_HOTPLUG=y
 
