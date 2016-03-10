@@ -17,6 +17,8 @@ CFLAGS_REMOVE_ftrace.o = -pg
 CFLAGS_REMOVE_early_printk.o = -pg
 endif
 
+CFLAGS_REMOVE_SSEPlus_float_REF.o += -mno-sse -mno-mmx -mno-sse2 -msoft-float
+
 obj-y			:= process_$(BITS).o signal.o entry_$(BITS).o
 obj-y			+= traps.o irq.o irq_$(BITS).o dumpstack_$(BITS).o
 obj-y			+= time.o ioport.o ldt.o dumpstack.o nmi.o
@@ -34,6 +36,7 @@ obj-y			+= alternative.o i8253.o pci-nommu.o hw_breakpoint.o
 obj-y			+= tsc.o io_delay.o rtc.o
 obj-y			+= pci-iommu_table.o
 obj-y			+= resource.o
+obj-y			+= SSEPlus_float_REF.o SSEPlus_ssse3_REF.o SSEPlus_sse4_REF.o SSEPlus_utils.o
 
 obj-y				+= trampoline.o trampoline_$(BITS).o
 obj-y				+= process.o
