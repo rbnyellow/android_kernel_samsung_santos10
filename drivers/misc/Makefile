@@ -63,3 +63,4 @@ obj-$(CONFIG_SEC_MODEM_V2)	+= modem_if_v2/
 obj-$(CONFIG_SEC_MODEM)	+= modem_v2/
 obj-$(CONFIG_SAMSUNG_JACK)	+= sec_jack.o
 obj-$(CONFIG_SEC_THERMISTOR)	+= sec_thermistor.o
+obj-$(CONFIG_UID_CPUTIME) += uid_cputime.o
