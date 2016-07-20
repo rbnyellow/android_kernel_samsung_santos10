@@ -49,6 +49,7 @@ struct touch_key {
 	u8 mask;
 	u32 rx_channel;
 	u32 tx_channel;
+	bool dummy;
 };
 
 /**

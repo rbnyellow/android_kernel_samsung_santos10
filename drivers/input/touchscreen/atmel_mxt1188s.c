@@ -368,6 +368,7 @@ struct mxt_data {
 	u8 t9_amp;
 	u8 t70_touch_event;
 	atomic_t keypad_enable;
+	atomic_t large_keys;
 };
 
 #if defined(CONFIG_TOUCHSCREEN_ATMEL_DEBUG)
@@ -1152,13 +1153,16 @@ static void mxt_treat_T15_object(struct mxt_data *data,
 	for (i = 0 ; i < data->pdata->key_size ; i++) {
 		state = input_message & touch_key[i].mask;
 		if (state != data->mxt_key_state[i]) {
-			data->mxt_key_state[i] = state;
-			input_report_key(data->input_dev, touch_key[i].code,
+			// Handle dummy keys only if large_keys is enabled
+			if (atomic_read(&data->large_keys) || (touch_key[i].dummy == false)) {
+				data->mxt_key_state[i] = state;
+				input_report_key(data->input_dev, touch_key[i].code,
 									state);
-			input_sync(data->input_dev);
-			dev_dbg(&data->client->dev, "key: %s: %d\n",
-							touch_key[i].name,
-							state ? 1 : 0);
+				input_sync(data->input_dev);
+				dev_dbg(&data->client->dev, "key: %s: %d\n",
+								touch_key[i].name,
+								state ? 1 : 0);
+			}
 		}
 	}
 
@@ -3695,6 +3699,49 @@ static int __devinit init_sec_keypad_enable(struct mxt_data *ts_data)
 	return 0;
 }
 
+static ssize_t large_keys_show(struct device *dev,
+					struct device_attribute *attr, char *buf)
+{
+	struct mxt_data *ts_data = dev_get_drvdata(dev);
+
+	return sprintf(buf, "%d\n", atomic_read(&ts_data->large_keys));
+}
+
+static ssize_t large_keys_store(struct device *dev,
+					struct device_attribute *attr,
+					const char *buf, size_t count)
+{
+	struct mxt_data *ts_data = dev_get_drvdata(dev);
+	unsigned int val = 0;
+
+	sscanf(buf, "%d", &val);
+	val = (val == 0 ? 0 : 1);
+
+	atomic_set(&ts_data->large_keys, val);
+
+	return count;
+}
+
+static DEVICE_ATTR(large_keys, S_IRUGO|S_IWUSR, large_keys_show,
+	large_keys_store);
+
+static int __devinit init_large_keys(struct mxt_data *ts_data)
+{
+	struct device *touchkey_dev = ts_data->pdata->key_dev;
+
+	if (!touchkey_dev) {
+		dev_err(&ts_data->client->dev, "Failed to find fac touchkey dev\n");
+		return -1;
+	}
+
+	if (dev_set_drvdata(touchkey_dev, ts_data) < 0)
+		return -1;
+
+	device_create_file(touchkey_dev, &dev_attr_large_keys);
+
+	return 0;
+}
+
 static ssize_t touchkey_threshold_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
@@ -3872,6 +3919,7 @@ static int __devinit mxt_probe(struct i2c_client *client,
 	input_dev->close = mxt_input_close;
 
 	atomic_set(&data->keypad_enable, 1);
+	atomic_set(&data->large_keys, 1);
 
 	if (data->pdata->key_size > 0) {
 		set_bit(EV_KEY, input_dev->evbit);
@@ -3883,6 +3931,11 @@ static int __devinit mxt_probe(struct i2c_client *client,
 		error = init_sec_keypad_enable(data);
 		if (unlikely(error)) {
 			dev_err(&client->dev, "Failed to make keypad_enable sysfs\n");
+		}
+
+		error = init_large_keys(data);
+		if (unlikely(error)) {
+			dev_err(&client->dev, "Failed to make large_keys sysfs\n");
 		}
 	}
 

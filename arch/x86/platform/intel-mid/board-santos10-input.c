@@ -385,31 +385,37 @@ static struct touch_key santos10_touch_keys[] = {
 		.name = "dummy_home1",
 		.code = KEY_DUMMY_HOME1,
 		.mask = 0x01,
+		.dummy = true,
 	},
 	{
 		.name = "dummy_home2",
 		.code = KEY_DUMMY_HOME2,
 		.mask = 0x02,
+		.dummy = true,
 	},
 	{
 		.name = "dummy_menu",
 		.code = KEY_DUMMY_MENU,
 		.mask = 0x04,
+		.dummy = true,
 	},
 	{
 		.name = "dummy_back",
 		.code = KEY_DUMMY_BACK,
 		.mask = 0x08,
+		.dummy = true,
 	},
 	{
 		.name = "menu",
 		.code = KEY_MENU,
 		.mask = 0x10,
+		.dummy = false,
 	},
 	{
 		.name = "back",
 		.code = KEY_BACK,
 		.mask = 0x20,
+		.dummy = false,
 	},
 };
 
