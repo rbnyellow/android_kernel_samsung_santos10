@@ -1025,15 +1025,8 @@ static ssize_t mode_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	struct cmc624_info *info = dev_get_drvdata(dev);
-	const char *name[MAX_BACKGROUND_MODE] = {
-		"DYNAMIC",
-		"STANDARD",
-		"MOVIE",
-		"AUTO",
-	};
 
-	return sprintf(buf, "Current Background Mode : %s\n",
-						name[info->state.background]);
+	return sprintf(buf, "%d\n", info->state.background);
 }
 
 static ssize_t mode_store(struct device *dev,
