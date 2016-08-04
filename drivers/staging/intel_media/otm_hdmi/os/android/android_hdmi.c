@@ -362,7 +362,6 @@ exit:
 			uevent_string = "HOTPLUG_IN=1";
 			psb_sysfs_uevent(hdmi_priv->dev, uevent_string);
 #ifdef SAMSUNG_HDMIAUDIO_EVENT
-			switch_set_state(&hdmi_priv->hdmi_switch, 1);
 			/*send hdmi audio info(channels, speaker) to platform side*/
 			switch_set_state(&hdmi_priv->audio_ch_switch,
 				hdmi_priv->monitor_type == MONITOR_TYPE_HDMI ?
@@ -380,7 +379,6 @@ exit:
 			edid_ready_in_hpd = 0;
 #ifdef SAMSUNG_HDMIAUDIO_EVENT
 			switch_set_state(&hdmi_priv->audio_ch_switch, -1);
-			switch_set_state(&hdmi_priv->hdmi_switch, 0);
 #endif
 			uevent_string = "HOTPLUG_OUT=1";
 			psb_sysfs_uevent(hdmi_priv->dev, uevent_string);
