@@ -33,6 +33,7 @@
 #include "atomisp_internal.h"
 #include "atomisp_ioctl.h"
 #include "atomisp_subdev.h"
+#include "atomisp_v4l2.h"
 #include "atomisp-regs.h"
 
 #include "hrt/hive_isp_css_mm_hrt.h"
@@ -464,6 +465,16 @@ static int atomisp_open(struct file *file)
 				__func__, pipe->pipe_type);
 
 	mutex_lock(&isp->mutex);
+
+	/* Deferred firmware loading case. */
+	if (!isp->firmware) {
+		isp->firmware = load_firmware(isp->dev);
+		if (!isp->firmware) {
+			dev_err(isp->dev, "Load firmwares failed\n");
+			ret = -EINVAL;
+			goto error;
+		}
+	}
 
 	if (!isp->input_cnt) {
 		v4l2_err(&atomisp_dev, "no camera attached\n");

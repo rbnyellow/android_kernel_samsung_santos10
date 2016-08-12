@@ -54,6 +54,12 @@ module_param(dypool_enable, bool, 0644);
 MODULE_PARM_DESC(dypool_enable,
 		"dynamic memory pool enable/disable (default:disable)");
 
+/* memory optimization: deferred firmware loading */
+bool defer_fw_load = 1;
+module_param(defer_fw_load, bool, 0644);
+MODULE_PARM_DESC(defer_fw_load,
+		"Defer FW loading until device is opened (default:enable)");
+
 /* cross componnet debug message flag */
 int dbg_level = 0;
 module_param(dbg_level, int, 0644);
@@ -922,7 +928,7 @@ error_mipi_csi2:
 	return ret;
 }
 
-static const struct firmware *
+const struct firmware *
 load_firmware(struct device *dev)
 {
 	const struct firmware *fw;
@@ -1030,10 +1036,14 @@ static int __devinit atomisp_pci_probe(struct pci_dev *dev,
 	}
 
 	/* Load isp firmware from user space */
-	isp->firmware = load_firmware(&dev->dev);
-	if (!isp->firmware) {
-		dev_err(&dev->dev, "Load firmwares failed\n");
-		goto load_fw_fail;
+	if (!defer_fw_load) {
+		isp->firmware = load_firmware(&dev->dev);
+		if (!isp->firmware) {
+			dev_err(&dev->dev, "Load firmwares failed\n");
+			goto load_fw_fail;
+		}
+	} else {
+		isp->firmware = NULL;
 	}
 
 	INIT_LIST_HEAD(&isp->s3a_stats);
@@ -1201,7 +1211,7 @@ static void __exit atomisp_exit(void)
 	pci_unregister_driver(&atomisp_pci_driver);
 }
 
-module_init(atomisp_init);
+late_initcall(atomisp_init);
 module_exit(atomisp_exit);
 
 MODULE_AUTHOR("Wen Wang <wen.w.wang@intel.com>");
