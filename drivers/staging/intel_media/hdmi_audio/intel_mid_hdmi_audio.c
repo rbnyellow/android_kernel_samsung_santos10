@@ -52,7 +52,7 @@
 static DEFINE_MUTEX(had_mutex);
 
 /*standard module options for ALSA. This module supports only one card*/
-static int hdmi_card_index = SNDRV_DEFAULT_IDX1;
+static int hdmi_card_index = 2;
 static char *hdmi_card_id = SNDRV_DEFAULT_STR1;
 static struct snd_intelhad *had_data;
 
