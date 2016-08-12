@@ -387,15 +387,6 @@ do {									\
 		dev_info(&(_data)->client->dev, __VA_ARGS__);		\
 } while (0)								\
 
-struct sec_ts_platform_data *bl_pdata = NULL;
-
-static void set_keyled_power(bool on) {
-	if (bl_pdata == NULL)
-		return;
-
-	bl_pdata->keyled_set_power(on, true);
-}
-
 static int mxt_wait_for_chg(struct mxt_data *data, u16 time)
 {
 	int timeout_counter = 0;
@@ -1162,10 +1153,8 @@ static void mxt_treat_T15_object(struct mxt_data *data,
 	for (i = 0 ; i < data->pdata->key_size ; i++) {
 		state = input_message & touch_key[i].mask;
 		if (state != data->mxt_key_state[i]) {
-			// Handle dummy keys only if high sensibility is enabled
+			// Handle dummy keys only if large_keys is enabled
 			if (atomic_read(&data->large_keys) || (touch_key[i].dummy == false)) {
-				set_keyled_power(true);
-
 				data->mxt_key_state[i] = state;
 				input_report_key(data->input_dev, touch_key[i].code,
 									state);
@@ -2347,10 +2336,6 @@ static void mxt_late_resume(struct early_suspend *h)
 	mutex_lock(&data->input_dev->mutex);
 
 	mxt_start(data);
-
-	// Light on if keypad is enabled
-	if (atomic_read(&data->keypad_enable))
-		set_keyled_power(true);
 
 	mutex_unlock(&data->input_dev->mutex);
 	dev_info(&data->client->dev, "late_resume done\n");
@@ -4025,8 +4010,6 @@ static int __devinit mxt_probe(struct i2c_client *client,
 
 	complete_all(&data->init_done);
 	dev_info(&client->dev, "Ateml MXT1188S probe done.\n");
-
-	bl_pdata = data->pdata;
 
 	return 0;
 
