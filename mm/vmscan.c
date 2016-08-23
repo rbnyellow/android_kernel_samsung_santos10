@@ -156,113 +156,6 @@ struct mem_cgroup_zone {
 int vm_swappiness = 60;
 long vm_total_pages;	/* The total number of pages which the VM controls */
 
-#ifdef CONFIG_DYNAMIC_MIN_FREE
-#define TIME_WRAP_AROUND(x, y) (((y) > (x)) ? (y) - (x) : (0-(x)) + (y))
-struct dmf_struct_t {
-	u64 total_running;
-	u64 start;
-	u64 end;
-	u64 pre_run;
-	u64 runtime;
-	u64 interval;
-	bool running;
-	int min_free_back;
-	bool wm_updated;
-	struct delayed_work work;
-};
-
-static struct dmf_struct_t dmf;
-
-static int is_time_to_init_dmf(struct dmf_struct_t *d)
-{
-	return (!d->wm_updated && extra_free_kbytes != 0);
-}
-
-static int is_dmf_init(struct dmf_struct_t *d)
-{
-	return d->wm_updated;
-}
-
-static void dmf_update_min_free(void)
-{
-	static int current_min_free = 0;
-
-	if (extra_free_kbytes != current_min_free) {
-		dmf_setup_per_zone_wmarks();
-		current_min_free = extra_free_kbytes;
-	}
-}
-
-static void restore_dmf_min_free(struct dmf_struct_t *d)
-{
-	extra_free_kbytes = d->wm_updated ?
-			d->min_free_back : extra_free_kbytes;
-	dmf_update_min_free();
-}
-
-static void dmf_restore_work(struct work_struct *work)
-{
-	u64 restore_time = jiffies;
-
-	if (TIME_WRAP_AROUND(dmf.end, restore_time) >
-			msecs_to_jiffies(dmf_idle_limit))
-		restore_dmf_min_free(&dmf);
-}
-
-static void dmf_reduce_min_free(void)
-{
-	static u64 updated_jifs = 0;
-	u64 now_jifs = jiffies;
-
-	if (TIME_WRAP_AROUND(updated_jifs, now_jifs)
-		< msecs_to_jiffies(dmf_running_limit))
-		return;
-
-	extra_free_kbytes = extra_free_kbytes >> 1;
-	if (extra_free_kbytes < min_free_kbytes)
-		extra_free_kbytes = min_free_kbytes;
-	dmf_update_min_free();
-	updated_jifs = now_jifs;
-}
-
-static void init_dmf(struct dmf_struct_t *d)
-{
-	if (!d->wm_updated && extra_free_kbytes != 0) {
-		d->min_free_back = extra_free_kbytes;
-		d->wm_updated = true;
-		INIT_DELAYED_WORK(&d->work, dmf_restore_work);
-	}
-}
-
-#define dmf_gap(_dmf) ((_dmf)->start - (_dmf)->pre_run)
-
-static inline int is_lazy_dmf(struct dmf_struct_t *d)
-{
-	return (d->wm_updated &&
-		dmf_gap(d) > msecs_to_jiffies(dmf_lazy_interval));
-}
-
-static inline int is_busy_dmf(struct dmf_struct_t *d)
-{
-	return (d->wm_updated &&
-		d->interval < msecs_to_jiffies(dmf_busy_interval));
-}
-
-static inline int is_long_dmf(struct dmf_struct_t *d)
-{
-	return (d->wm_updated &&
-		(d->runtime > msecs_to_jiffies(dmf_running_limit)
-		|| d->total_running > msecs_to_jiffies(dmf_running_limit)));
-}
-
-static int is_too_long_dmf(struct dmf_struct_t *d)
-{
-	u64 now_jifs = jiffies;
-	return (TIME_WRAP_AROUND(d->start, now_jifs) >
-			msecs_to_jiffies(dmf_running_limit));
-}
-#endif /* CONFIG_DYNAMIC_MIN_FREE */
-
 static LIST_HEAD(shrinker_list);
 static DECLARE_RWSEM(shrinker_rwsem);
 
@@ -3127,31 +3020,6 @@ static void kswapd_try_to_sleep(pg_data_t *pgdat, int order, int classzone_idx)
 		 * per-cpu vmstat threshold while kswapd is awake and restore
 		 * them before going back to sleep.
 		 */
-
-#ifdef CONFIG_DYNAMIC_MIN_FREE
-		if (is_dmf_init(&dmf)) {
-			dmf.running = false;
-			dmf.end = jiffies;
-			dmf.runtime = TIME_WRAP_AROUND(dmf.start, dmf.end);
-			dmf.interval = TIME_WRAP_AROUND(dmf.pre_run, dmf.start);
-			dmf.pre_run = dmf.end;
-		}
-
-		if (is_busy_dmf(&dmf))
-			dmf.total_running += dmf.runtime;
-		else
-			dmf.total_running = 0;
-
-		if (is_long_dmf(&dmf)) {
-			dmf_reduce_min_free();
-			dmf.total_running = 0;
-			cancel_delayed_work_sync(&dmf.work);
-			schedule_delayed_work(&dmf.work,
-				msecs_to_jiffies(dmf_idle_limit+5));
-		} else {
-			restore_dmf_min_free(&dmf);
-		}
-#endif /* CONFIG_DYNAMIC_MIN_FREE */
 		set_pgdat_percpu_threshold(pgdat, calculate_normal_threshold);
 
 		if (!kthread_should_stop())
@@ -3257,27 +3125,6 @@ static int kswapd(void *p)
 		if (kthread_should_stop())
 			break;
 
-#ifdef CONFIG_DYNAMIC_MIN_FREE
-		if (!dmf.running) {
-			if (!is_dmf_init(&dmf)) {
-				init_dmf(&dmf);
-			} else {
-				dmf.start = jiffies;
-				dmf.running = true;
-				if (is_lazy_dmf(&dmf))
-					restore_dmf_min_free(&dmf);
-			}
-		} else {
-			if (is_too_long_dmf(&dmf)) {
-				dmf_reduce_min_free();
-				dmf.end = jiffies;
-				dmf.runtime = TIME_WRAP_AROUND(dmf.start, dmf.end);
-				dmf.start = dmf.end + 1;
-				dmf.pre_run = dmf.end;
-				dmf.total_running += dmf.runtime;
-			}
-		}
-#endif /* CONFIG_DYNAMIC_MIN_FREE */
 		/*
 		 * We can speed up thawing tasks if we don't call balance_pgdat
 		 * after returning from the refrigerator

@@ -197,22 +197,14 @@ static char * const zone_names[MAX_NR_ZONES] = {
  * tuned according to the amount of memory in the system.
  */
 int min_free_kbytes = 1024;
+int min_free_order_shift = 1;
 
 /*
- * Extra memory for the system to try freeing between the min and
- * low watermarks.  Useful for workloads that require low latency
- * memory allocations in bursts larger than the normal gap between
- * low and min.
+ * Extra memory for the system to try freeing. Used to temporarily
+ * free memory, to make space for new workloads. Anyone can allocate
+ * down to the min watermarks controlled by min_free_kbytes above.
  */
-int extra_free_kbytes;
-#ifdef CONFIG_DYNAMIC_MIN_FREE
-int dmf_lazy_interval;
-int dmf_busy_interval;
-int dmf_running_limit;
-int dmf_idle_limit;
-#endif
-
-int min_free_order_shift = 1;
+int extra_free_kbytes = 0;
 
 static unsigned long __meminitdata nr_kernel_pages;
 static unsigned long __meminitdata nr_all_pages;
@@ -5057,10 +5049,9 @@ void setup_per_zone_wmarks(void)
 		}
 
 		zone->watermark[WMARK_LOW]  = min_wmark_pages(zone) +
-						low + (min >> 2);
+					low + (min >> 2);
 		zone->watermark[WMARK_HIGH] = min_wmark_pages(zone) +
-						low + (min >> 1);
-
+					low + (min >> 1);
 		setup_zone_migrate_reserve(zone);
 		spin_unlock_irqrestore(&zone->lock, flags);
 	}
@@ -5156,11 +5147,11 @@ int __meminit init_per_zone_wmark_min(void)
 module_init(init_per_zone_wmark_min)
 
 /*
- * free_kbytes_sysctl_handler - just a wrapper around proc_dointvec() so
- * that we can call two helper functions whenever min_free_kbytes
- * or extra_free_kbytes changes.
+ * min_free_kbytes_sysctl_handler - just a wrapper around proc_dointvec() so 
+ *	that we can call two helper functions whenever min_free_kbytes
+ *	or extra_free_kbytes changes.
  */
-int free_kbytes_sysctl_handler(ctl_table *table, int write,
+int min_free_kbytes_sysctl_handler(ctl_table *table, int write, 
 	void __user *buffer, size_t *length, loff_t *ppos)
 {
 	proc_dointvec(table, write, buffer, length, ppos);
@@ -5168,20 +5159,6 @@ int free_kbytes_sysctl_handler(ctl_table *table, int write,
 		setup_per_zone_wmarks();
 	return 0;
 }
-
-#ifdef CONFIG_DYNAMIC_MIN_FREE
-int dmf_sysctl_handler(ctl_table *table, int write,
-	void __user *buffer, size_t *length, loff_t *ppos)
-{
-	proc_dointvec(table, write, buffer, length, ppos);
-	return 0;
-}
-
-void dmf_setup_per_zone_wmarks(void)
-{
-	setup_per_zone_wmarks();
-}
-#endif
 
 #ifdef CONFIG_NUMA
 int sysctl_min_unmapped_ratio_sysctl_handler(ctl_table *table, int write,
