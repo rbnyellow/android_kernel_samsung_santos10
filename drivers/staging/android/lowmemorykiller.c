@@ -45,10 +45,6 @@
 #define LOWMEM_DEATHPENDING_DEPTH		3
 #endif
 
-#ifdef CONFIG_LMK_COUNT_READ
-static unsigned int lmk_count;
-#endif
-
 static uint32_t lowmem_debug_level = 1;
 static int lowmem_adj[6] = {
 	0,
@@ -315,9 +311,6 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 			lowmem_deathpending_timeout = jiffies + HZ;
 			send_sig(SIGKILL, selected[i], 0);
 			rem -= selected_tasksize[i];
-#ifdef CONFIG_LMK_COUNT_READ
-			lmk_count++;
-#endif
 		}
 	}
 #else
@@ -329,9 +322,6 @@ static int lowmem_shrink(struct shrinker *s, struct shrink_control *sc)
 		send_sig(SIGKILL, selected, 0);
 		set_tsk_thread_flag(selected, TIF_MEMDIE);
 		rem -= selected_tasksize;
-#ifdef CONFIG_LMK_COUNT_READ
-		lmk_count++;
-#endif
 	}
 #endif
 	lowmem_print(4, "lowmem_shrink %lu, %x, return %d\n",
@@ -452,10 +442,6 @@ module_param_array_named(adj, lowmem_adj, int, &lowmem_adj_size,
 module_param_array_named(minfree, lowmem_minfree, uint, &lowmem_minfree_size,
 			 S_IRUGO | S_IWUSR);
 module_param_named(debug_level, lowmem_debug_level, uint, S_IRUGO | S_IWUSR);
-
-#ifdef CONFIG_LMK_COUNT_READ
-module_param_named(lmkcount, lmk_count, uint, S_IRUGO);
-#endif
 
 module_init(lowmem_init);
 module_exit(lowmem_exit);
