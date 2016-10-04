@@ -92,16 +92,6 @@ config ANDROID_INTF_ALARM_DEV
 	  elapsed realtime, and a non-wakeup alarm on the monotonic clock.
 	  Also exports the alarm interface to user-space.
 
-config ENHANCED_LMK_ROUTINE
-	bool "LMK may kill up to 3 processes"
-	depends on ANDROID_LOW_MEMORY_KILLER
-	default y
-
-config LMK_COUNT_READ
-	bool "Enable LMK counter"
-	depends on ANDROID_LOW_MEMORY_KILLER
-	default y
-
 endif # if ANDROID
 
 endmenu
