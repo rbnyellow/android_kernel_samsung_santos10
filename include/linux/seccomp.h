@@ -10,15 +10,25 @@
 #define SECCOMP_MODE_STRICT	1 /* uses hard-coded filter. */
 #define SECCOMP_MODE_FILTER	2 /* uses user-supplied filter. */
 
+/* Valid operations for seccomp syscall. */
+#define SECCOMP_SET_MODE_STRICT	0
+#define SECCOMP_SET_MODE_FILTER	1
+
+/* Valid flags for SECCOMP_SET_MODE_FILTER */
+#define SECCOMP_FILTER_FLAG_TSYNC	1
+
 /*
  * All BPF programs must return a 32-bit value.
- * The bottom 16-bits are reserved for future use.
+ * The bottom 16-bits are for optional return data.
  * The upper 16-bits are ordered from least permissive values to most.
  *
  * The ordering ensures that a min_t() over composed return values always
  * selects the least permissive choice.
  */
 #define SECCOMP_RET_KILL	0x00000000U /* kill the task immediately */
+#define SECCOMP_RET_TRAP	0x00030000U /* disallow and force a SIGSYS */
+#define SECCOMP_RET_ERRNO	0x00050000U /* returns an errno */
+#define SECCOMP_RET_TRACE	0x7ff00000U /* pass to a tracer or disallow */
 #define SECCOMP_RET_ALLOW	0x7fff0000U /* allow */
 
 /* Masks for the return value sections. */
@@ -42,6 +52,9 @@ struct seccomp_data {
 };
 
 #ifdef __KERNEL__
+
+#define SECCOMP_FILTER_FLAG_MASK	(SECCOMP_FILTER_FLAG_TSYNC)
+
 #ifdef CONFIG_SECCOMP
 
 #include <linux/thread_info.h>
@@ -53,22 +66,23 @@ struct seccomp_filter;
  *
  * @mode:  indicates one of the valid values above for controlled
  *         system calls available to a process.
- * @filter: The metadata and ruleset for determining what system calls
- *          are allowed for a task.
+ * @filter: must always point to a valid seccomp-filter or NULL as it is
+ *          accessed without locking during system call entry.
  *
  *          @filter must only be accessed from the context of current as there
- *          is no locking.
+ *          is no read locking.
  */
 struct seccomp {
 	int mode;
 	struct seccomp_filter *filter;
 };
 
-extern void __secure_computing(int);
-static inline void secure_computing(int this_syscall)
+extern int __secure_computing(int);
+static inline int secure_computing(int this_syscall)
 {
 	if (unlikely(test_thread_flag(TIF_SECCOMP)))
-		__secure_computing(this_syscall);
+		return  __secure_computing(this_syscall);
+	return 0;
 }
 
 extern long prctl_get_seccomp(void);
