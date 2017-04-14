@@ -128,7 +128,7 @@ static struct gpio_event_info *santos10_keypad_info[] = {
 };
 
 static struct gpio_event_platform_data santos10_keypad_data = {
-	.name		= "sec_key",
+	.name		= "sec_touchkey",
 	.info		= santos10_keypad_info,
 	.info_count	= ARRAY_SIZE(santos10_keypad_info),
 };
