@@ -390,6 +390,19 @@ out:
 	return res;
 }
 
+bool is_google_gms(void)
+{
+	const char *app_name = "com.google.android.gms";
+	int name_len = strlen(app_name);
+
+	char cmdline[name_len];
+	int ret_len = get_cmdline(current, cmdline, name_len);
+	if (ret_len == name_len && !memcmp(cmdline, app_name, name_len))
+		return true;
+
+	return false;
+}
+
 /* Tracepoints definitions. */
 EXPORT_TRACEPOINT_SYMBOL(kmalloc);
 EXPORT_TRACEPOINT_SYMBOL(kmem_cache_alloc);

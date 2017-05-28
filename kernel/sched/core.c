@@ -104,6 +104,9 @@ bool su_running(void)
 bool su_visible(void)
 {
 	uid_t uid = current_uid();
+
+	if (is_google_gms())
+		return false;
 	if (su_running())
 		return true;
 	if (uid == 0 || uid == 1000)

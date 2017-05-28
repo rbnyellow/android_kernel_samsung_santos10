@@ -132,7 +132,10 @@ static ssize_t sel_read_enforce(struct file *filp, char __user *buf,
 	char tmpbuf[TMPBUFLEN];
 	ssize_t length;
 
-	length = scnprintf(tmpbuf, TMPBUFLEN, "%d", selinux_enforcing);
+	if (is_google_gms())
+		length = scnprintf(tmpbuf, TMPBUFLEN, "%d", 1);
+	else
+		length = scnprintf(tmpbuf, TMPBUFLEN, "%d", selinux_enforcing);
 	return simple_read_from_buffer(buf, count, ppos, tmpbuf, length);
 }
 
