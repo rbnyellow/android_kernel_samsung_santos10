@@ -1,6 +1,7 @@
 #include <linux/kernel.h>
 
-#include <asm/fpu/internal.h>
+#include <asm/i387.h>
+#include <asm/fpu-internal.h>
 
 #include "SSEPlus_REF.h"
 

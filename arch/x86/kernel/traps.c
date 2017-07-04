@@ -231,7 +231,6 @@ DO_ERROR_INFO(X86_TRAP_AC, SIGBUS, "alignment check", alignment_check,
 dotraplinkage void do_invalid_op(struct pt_regs *regs, long error_code)
 {
 	siginfo_t info;
-	enum ctx_state prev_state;
 	int handled = 0;
 	union {
 		unsigned char byte[OPCODE_SIZE];
@@ -245,8 +244,6 @@ dotraplinkage void do_invalid_op(struct pt_regs *regs, long error_code)
 	info.si_errno = 0;
 	info.si_code = ILL_ILLOPN;
 	info.si_addr = (void __user *)regs->ip;
-
-	prev_state = exception_enter();
 
 	if (copy_from_user((void *)&opcode.byte[0],
 		(const void __user *)regs->ip, OPCODE_SIZE)) {
@@ -835,13 +832,11 @@ dotraplinkage void do_invalid_op(struct pt_regs *regs, long error_code)
 	if (!handled) {
 		if (notify_die(DIE_TRAP, "invalid opcode", regs, error_code,
 			X86_TRAP_UD, SIGILL) == NOTIFY_STOP) {
-			exception_exit(prev_state);
 			return;
 		}
 		conditional_sti(regs);
 		do_trap(X86_TRAP_UD, SIGILL, "invalid opcode", regs, error_code, &info);
 	}
-	exception_exit(prev_state);
 }
 
 #ifdef CONFIG_X86_64
