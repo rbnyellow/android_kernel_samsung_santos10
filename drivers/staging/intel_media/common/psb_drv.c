@@ -2281,14 +2281,23 @@ static int psb_disp_ioctl(struct drm_device *dev, void *data,
 		}
 	} else if (dp_ctrl->cmd == DRM_PSB_HDMI_NOTIFY_HOTPLUG_TO_AUDIO) {
 		if (dp_ctrl->u.data == 0) {
+#ifdef SAMSUNG_HDMIAUDIO_EVENT
+			switch_set_state(&dev_priv->hdmi_priv->audio_ch_switch, -1);
 			switch_set_state(&dev_priv->hdmi_priv->hdmi_switch, 0);
+#endif
 			/* notify audio with HDMI unplug event */
 			if (dev_priv->hdmi_priv->monitor_type == MONITOR_TYPE_HDMI) {
 				DRM_INFO("HDMI plug out to audio driver\n");
 				mid_hdmi_audio_signal_event(dev, HAD_EVENT_HOT_UNPLUG);
 			}
 		} else {
+#ifdef SAMSUNG_HDMIAUDIO_EVENT
 			switch_set_state(&dev_priv->hdmi_priv->hdmi_switch, 1);
+			/*send hdmi audio info(channels, speaker) to platform side*/
+			switch_set_state(&dev_priv->hdmi_priv->audio_ch_switch,
+				dev_priv->hdmi_priv->monitor_type == MONITOR_TYPE_HDMI ?
+					dev_priv->hdmi_priv->audio_speaker_data : 0);
+#endif
 			/* notify audio with HDMI plug event */
 			if (dev_priv->hdmi_priv->monitor_type == MONITOR_TYPE_HDMI) {
 				DRM_INFO("HDMI plug in to audio driver\n");

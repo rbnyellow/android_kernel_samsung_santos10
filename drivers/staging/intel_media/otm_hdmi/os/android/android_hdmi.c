@@ -361,12 +361,6 @@ exit:
 			hdmi_state = 1;
 			uevent_string = "HOTPLUG_IN=1";
 			psb_sysfs_uevent(hdmi_priv->dev, uevent_string);
-#ifdef SAMSUNG_HDMIAUDIO_EVENT
-			/*send hdmi audio info(channels, speaker) to platform side*/
-			switch_set_state(&hdmi_priv->audio_ch_switch,
-				hdmi_priv->monitor_type == MONITOR_TYPE_HDMI ?
-					hdmi_priv->audio_speaker_data : 0);
-#endif
 			/* Delay ospm activity till hotplug has propogated
 			 * through the system
 			 */
@@ -377,9 +371,6 @@ exit:
 			otm_hdmi_power_rails_off();
 			hdmi_state = 0;
 			edid_ready_in_hpd = 0;
-#ifdef SAMSUNG_HDMIAUDIO_EVENT
-			switch_set_state(&hdmi_priv->audio_ch_switch, -1);
-#endif
 			uevent_string = "HOTPLUG_OUT=1";
 			psb_sysfs_uevent(hdmi_priv->dev, uevent_string);
 		}
